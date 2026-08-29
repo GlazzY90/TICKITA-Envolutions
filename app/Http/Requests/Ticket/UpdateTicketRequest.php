@@ -45,7 +45,7 @@ class UpdateTicketRequest extends FormRequest
                 'nullable',
                 Rule::exists('users', 'id')
                     ->where(
-                        fn($query) => $query->where(
+                        fn ($query) => $query->where(
                             'role',
                             UserRole::SUPPORT_AGENT->value
                         )

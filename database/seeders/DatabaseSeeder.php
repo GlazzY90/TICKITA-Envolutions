@@ -63,8 +63,7 @@ class DatabaseSeeder extends Seeder
             'created_by' => $acmeClient->id,
             'assigned_to' => null,
             'title' => 'Unable to access production system',
-            'description' =>
-                'Our team cannot access the production application.',
+            'description' => 'Our team cannot access the production application.',
             'status' => TicketStatus::OPEN,
             'initial_priority' => TicketPriority::HIGH,
             'priority' => TicketPriority::HIGH,
@@ -79,8 +78,7 @@ class DatabaseSeeder extends Seeder
             'created_by' => $globexClient->id,
             'assigned_to' => $agent->id,
             'title' => 'Export function returns an error',
-            'description' =>
-                'CSV export fails on the reports page.',
+            'description' => 'CSV export fails on the reports page.',
             'status' => TicketStatus::IN_PROGRESS,
             'initial_priority' => TicketPriority::NORMAL,
             'priority' => TicketPriority::NORMAL,

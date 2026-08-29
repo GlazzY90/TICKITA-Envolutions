@@ -1,58 +1,231 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# TICKITA
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Support Ticket Portal built with Laravel, React, and MySQL.
 
-## About Laravel
+Clients can create and manage tickets for their own organization, while support agents can manage tickets across all organizations.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Tech Stack
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Backend
+- Laravel 13
+- PHP 8.3
+- Laravel Sanctum
+- Eloquent ORM
+- MySQL 8
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Frontend
+- React
+- React Router
+- Axios
+- Vite
 
-## Learning Laravel
+### Testing & CI
+- PHPUnit / Laravel Feature Tests
+- Laravel Pint
+- GitHub Actions
+- MySQL 8.4 in CI
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Laravel handles validation, authorization, business logic, persistence, and API serialization, while React handles presentation and user interaction.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Core Domain
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+The system uses four main entities:
 
-## Agentic Development
+- **Organization** — represents a client company.
+- **User** — either a `client` or `support_agent`.
+- **Ticket** — belongs to exactly one organization and stores status, priority, assignment, and SLA information.
+- **Ticket Message** — represents either a public reply or an internal support note.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+### Client Users
 
-```bash
-composer require laravel/boost --dev
+Clients can:
+- Create tickets for their own organization
+- View their organization's tickets
+- View ticket details
+- Add public replies
 
-php artisan boost:install
+Clients cannot:
+- Access another organization's tickets
+- Change status, priority, or assignment
+- Create or view internal notes
+
+### Support Agents
+
+Support agents can:
+- View tickets across all organizations
+- Search and filter tickets
+- Change status and current priority
+- Assign or unassign support agents
+- Add public replies
+- Add internal notes
+
+Ticket authorization is enforced through `TicketPolicy`.
+
+Internal notes are filtered at the database-query level, so they are never included in client API responses.
+
+## Ticket Lifecycle
+
+Supported statuses:
+- `open`
+- `in_progress`
+- `resolved`
+- `closed`
+
+Supported priorities:
+- `low`
+- `normal`
+- `high`
+
+Tickets store both:
+
+```text
+initial_priority
+priority
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+`initial_priority` is used to calculate the original SLA deadline, while `priority` represents the current priority and may later be changed by support agents.
 
-## Contributing
+Changing the current priority does **not** recalculate the original SLA deadline.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## SLA Rules
 
-## Code of Conduct
+| Priority | Resolution SLA |
+| -------- | --------------: |
+| High     |  4 hours |
+| Normal   | 24 hours |
+| Low      | 72 hours |
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+The UI displays:
+- On Track
+- Due Soon
+- Overdue
+- Completed
 
-## Security Vulnerabilities
+`Due Soon` means 30 minutes or less remain before the SLA deadline.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Resolved or closed tickets are marked as `Completed`.
 
-## License
+## Search & Filtering
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Support agents can:
+- Search ticket titles and descriptions
+- Filter by organization
+- Filter by status
+- Filter by priority
+
+## Installation
+
+### Requirements
+- PHP 8.3+
+- Composer
+- Node.js and npm
+- MySQL 8 or compatible MariaDB
+- Git
+
+### 1. Clone the repository
+
+```bash
+git clone <repository-url>
+cd <repository-directory>
+```
+
+### 2. Create the database
+
+```sql
+CREATE DATABASE tickita
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+```
+
+Copy the environment file:
+
+```bash
+cp .env.example .env
+```
+
+Configure your MySQL credentials in `.env`:
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=tickita
+DB_USERNAME=root
+DB_PASSWORD=your_password
+```
+
+### 3. Install dependencies and set up the app
+
+```bash
+composer install
+npm install
+
+php artisan key:generate
+php artisan migrate:fresh --seed
+```
+
+### 4. Start development
+
+Start Laravel:
+
+```bash
+php artisan serve
+```
+
+Start Vite in another terminal:
+
+```bash
+npm run dev
+```
+
+Open:
+
+```text
+http://127.0.0.1:8000
+```
+
+## Development Accounts
+
+| Role          | Email               | Password |
+| ------------- | -------------------- | -------- |
+| Acme Client   | client@acme.test     | password |
+| Globex Client | client@globex.test   | password |
+| Support Agent | agent@support.test   | password |
+
+These accounts exist only for local development.
+
+## Testing
+
+Create a separate test database:
+
+```sql
+CREATE DATABASE tickita_test
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+```
+
+Run tests:
+
+```bash
+php artisan test
+```
+
+Check PHP formatting:
+
+```bash
+vendor/bin/pint --test
+```
+
+Build the frontend:
+
+```bash
+npm run build
+```
+
+## Continuous Integration
+
+GitHub Actions runs on development branches, pull requests to `main`, and pushes to `main`, verifying:
+
+```text
+Laravel Pint → MySQL migrations + seeders → Laravel tests → React production build
+```

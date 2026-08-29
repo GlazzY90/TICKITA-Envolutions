@@ -44,7 +44,7 @@ class TicketResource extends JsonResource
 
             'organization' => $this->whenLoaded(
                 'organization',
-                fn() => [
+                fn () => [
                     'id' => $this->organization->id,
                     'name' => $this->organization->name,
                 ]
@@ -52,7 +52,7 @@ class TicketResource extends JsonResource
 
             'creator' => $this->whenLoaded(
                 'creator',
-                fn() => [
+                fn () => [
                     'id' => $this->creator->id,
                     'name' => $this->creator->name,
                 ]
@@ -60,7 +60,7 @@ class TicketResource extends JsonResource
 
             'assigned_agent' => $this->whenLoaded(
                 'assignedAgent',
-                fn() => $this->assignedAgent
+                fn () => $this->assignedAgent
                 ? [
                     'id' => $this->assignedAgent->id,
                     'name' => $this->assignedAgent->name,

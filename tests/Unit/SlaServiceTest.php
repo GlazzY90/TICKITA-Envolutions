@@ -28,7 +28,7 @@ class SlaServiceTest extends TestCase
     {
         parent::setUp();
 
-        $this->service = new SlaService();
+        $this->service = new SlaService;
     }
 
     public function test_deadline_is_calculated_from_priority(): void
@@ -141,7 +141,7 @@ class SlaServiceTest extends TestCase
         string $deadline,
         TicketStatus $status = TicketStatus::OPEN
     ): Ticket {
-        $ticket = new Ticket();
+        $ticket = new Ticket;
 
         $ticket->status = $status;
         $ticket->initial_priority = TicketPriority::HIGH;

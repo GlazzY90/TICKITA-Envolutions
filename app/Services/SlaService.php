@@ -24,57 +24,57 @@ and SLA classification uses a fixed number of datetime comparisons.
 */
 class SlaService
 {
-  public function hoursFor(TicketPriority $priority): int
-  {
-    return match ($priority) {
-      TicketPriority::HIGH => 4,
-      TicketPriority::NORMAL => 24,
-      TicketPriority::LOW => 72,
-    };
-  }
-
-  public function deadlineFor(
-    TicketPriority $priority,
-    CarbonInterface $createdAt
-  ): CarbonImmutable {
-    return CarbonImmutable::instance($createdAt)
-      ->addHours($this->hoursFor($priority));
-  }
-
-  public function statusFor(
-    Ticket $ticket,
-    ?CarbonInterface $now = null
-  ): SlaStatus {
-    if (
-      $ticket->status === TicketStatus::RESOLVED
-      || $ticket->status === TicketStatus::CLOSED
-    ) {
-      return SlaStatus::COMPLETED;
+    public function hoursFor(TicketPriority $priority): int
+    {
+        return match ($priority) {
+            TicketPriority::HIGH => 4,
+            TicketPriority::NORMAL => 24,
+            TicketPriority::LOW => 72,
+        };
     }
 
-    $now = $now
-      ? CarbonImmutable::instance($now)
-      : CarbonImmutable::now();
-
-    $deadline = CarbonImmutable::instance(
-      $ticket->sla_due_at
-    );
-
-    if ($now->greaterThan($deadline)) {
-      return SlaStatus::OVERDUE;
+    public function deadlineFor(
+        TicketPriority $priority,
+        CarbonInterface $createdAt
+    ): CarbonImmutable {
+        return CarbonImmutable::instance($createdAt)
+            ->addHours($this->hoursFor($priority));
     }
 
-    $dueSoonHours = intdiv(
-      $this->hoursFor($ticket->initial_priority),
-      4
-    );
+    public function statusFor(
+        Ticket $ticket,
+        ?CarbonInterface $now = null
+    ): SlaStatus {
+        if (
+            $ticket->status === TicketStatus::RESOLVED
+            || $ticket->status === TicketStatus::CLOSED
+        ) {
+            return SlaStatus::COMPLETED;
+        }
 
-    $dueSoonAt = $deadline->subHours($dueSoonHours);
+        $now = $now
+          ? CarbonImmutable::instance($now)
+          : CarbonImmutable::now();
 
-    if ($now->greaterThanOrEqualTo($dueSoonAt)) {
-      return SlaStatus::DUE_SOON;
+        $deadline = CarbonImmutable::instance(
+            $ticket->sla_due_at
+        );
+
+        if ($now->greaterThan($deadline)) {
+            return SlaStatus::OVERDUE;
+        }
+
+        $dueSoonHours = intdiv(
+            $this->hoursFor($ticket->initial_priority),
+            4
+        );
+
+        $dueSoonAt = $deadline->subHours($dueSoonHours);
+
+        if ($now->greaterThanOrEqualTo($dueSoonAt)) {
+            return SlaStatus::DUE_SOON;
+        }
+
+        return SlaStatus::ON_TRACK;
     }
-
-    return SlaStatus::ON_TRACK;
-  }
 }

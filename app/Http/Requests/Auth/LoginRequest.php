@@ -24,7 +24,7 @@ class LoginRequest extends FormRequest
     public function authenticate(): void
     {
         if (
-            !Auth::guard('web')->attempt(
+            ! Auth::guard('web')->attempt(
                 $this->only('email', 'password')
             )
         ) {

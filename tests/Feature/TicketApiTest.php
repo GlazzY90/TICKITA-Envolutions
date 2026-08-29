@@ -210,8 +210,8 @@ class TicketApiTest extends TestCase
 
         $this->getJson(
             '/api/tickets?organization_id='
-            . $organizationA->id
-            . '&status=open&priority=high&search=Database'
+            .$organizationA->id
+            .'&status=open&priority=high&search=Database'
         )
             ->assertOk()
             ->assertJsonCount(1, 'data')
@@ -332,5 +332,100 @@ class TicketApiTest extends TestCase
             ),
             'resolved_at' => null,
         ], $overrides));
+    }
+
+    public function test_unauthenticated_user_cannot_access_tickets(): void
+    {
+        $this->getJson('/api/tickets')
+            ->assertUnauthorized();
+    }
+
+    public function test_client_cannot_access_support_options(): void
+    {
+        $organization = Organization::factory()->create();
+
+        $client = User::factory()
+            ->forOrganization($organization)
+            ->create();
+
+        $this->actingAs($client, 'web');
+
+        $this->getJson('/api/support/options')
+            ->assertForbidden();
+    }
+
+    public function test_ticket_cannot_be_assigned_to_client_user(): void
+    {
+        $organization = Organization::factory()->create();
+
+        $client = User::factory()
+            ->forOrganization($organization)
+            ->create();
+
+        $agent = User::factory()
+            ->supportAgent()
+            ->create();
+
+        $ticket = $this->createTicket(
+            $organization,
+            $client
+        );
+
+        $this->actingAs($agent, 'web');
+
+        $this->patchJson(
+            "/api/tickets/{$ticket->id}",
+            [
+                'assigned_to' => $client->id,
+            ]
+        )
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(
+                'assigned_to'
+            );
+    }
+
+    public function test_agent_can_assign_ticket_to_another_agent(): void
+    {
+        $organization = Organization::factory()->create();
+
+        $client = User::factory()
+            ->forOrganization($organization)
+            ->create();
+
+        $agentA = User::factory()
+            ->supportAgent()
+            ->create();
+
+        $agentB = User::factory()
+            ->supportAgent()
+            ->create();
+
+        $ticket = $this->createTicket(
+            $organization,
+            $client
+        );
+
+        $this->actingAs($agentA, 'web');
+
+        $this->patchJson(
+            "/api/tickets/{$ticket->id}",
+            [
+                'assigned_to' => $agentB->id,
+            ]
+        )
+            ->assertOk()
+            ->assertJsonPath(
+                'data.assigned_agent.id',
+                $agentB->id
+            );
+
+        $this->assertDatabaseHas(
+            'tickets',
+            [
+                'id' => $ticket->id,
+                'assigned_to' => $agentB->id,
+            ]
+        );
     }
 }

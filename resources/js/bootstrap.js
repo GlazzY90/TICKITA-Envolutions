@@ -1,9 +1,15 @@
-import axios from 'axios';
+import http from './api/http';
 
-window.axios = axios;
+/*
+Logic:
+Makes the configured Axios instance available globally for development
+console testing while application modules import it directly.
 
-window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
-window.axios.defaults.headers.common['Accept'] = 'application/json';
+Structure:
+bootstrap.js remains the application's initialization bridge.
 
-window.axios.defaults.withCredentials = true;
-window.axios.defaults.withXSRFToken = true;
+DSA:
+No algorithm.
+*/
+
+window.axios = http;

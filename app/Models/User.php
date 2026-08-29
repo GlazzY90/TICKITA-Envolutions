@@ -61,4 +61,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(TicketMessage::class, 'author_id');
     }
+
+    public function isClient(): bool
+    {
+        return $this->role === UserRole::CLIENT;
+    }
+
+    public function isSupportAgent(): bool
+    {
+        return $this->role === UserRole::SUPPORT_AGENT;
+    }
 }

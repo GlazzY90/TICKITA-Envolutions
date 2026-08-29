@@ -4,8 +4,7 @@ on:
   push:
     branches:
       - main
-      - 'chore/**'
-      - 'feat/**'
+      - 'todo/**'
       - 'fix/**'
 
   pull_request:

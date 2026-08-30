@@ -6,6 +6,12 @@ Clients can create and manage tickets for their own organization, while support 
 
 ## Tech Stack
 
+### Frontend
+- React: Keeps the frontend separate from backend business logic.
+- React Router: Handles page navigation without full page reloads.
+- Axios: Keeps API requests simple and reusable.
+- Vite: Provides fast development builds and simple production bundling.
+
 ### Backend
 - Laravel 13
 - PHP 8.3
@@ -13,19 +19,35 @@ Clients can create and manage tickets for their own organization, while support 
 - Eloquent ORM
 - MySQL 8
 
-### Frontend
-- React
-- React Router
-- Axios
-- Vite
-
 ### Testing & CI
-- PHPUnit / Laravel Feature Tests
-- Laravel Pint
-- GitHub Actions
-- MySQL 8.4 in CI
+- PHPUnit / Laravel Feature Tests: Verify important application behavior and access-control rules.
+- Laravel Pint: Keep code formatting consistent.
+- GitHub Actions: This is extras, i'm currently familiarize myself to use this.
+- MySQL 8.4: To simulate the DB i'm using
 
 Laravel handles validation, authorization, business logic, persistence, and API serialization, while React handles presentation and user interaction.
+
+## Architecture & Design Decisions
+
+The application uses a Laravel API with a React frontend.
+
+```text
+React UI
+    ↓
+Axios
+    ↓
+Laravel API Routes
+    ↓
+Form Requests
+    ↓
+Controllers
+    ↓
+Policies / Filters / Services
+    ↓
+Eloquent
+    ↓
+MySQL
+```
 
 ## Core Domain
 
@@ -101,17 +123,56 @@ The UI displays:
 - Overdue
 - Completed
 
-`Due Soon` means 30 minutes or less remain before the SLA deadline.
-
-Resolved or closed tickets are marked as `Completed`.
-
 ## Search & Filtering
 
-Support agents can:
-- Search ticket titles and descriptions
-- Filter by organization
-- Filter by status
-- Filter by priority
+- Search by ticket content
+- Search by ticket ID
+- Status filtering
+- Priority filtering
+- SLA-status filtering
+- Creation-date filtering
+- Pagination
+
+## Notifications
+
+The application provides database-backed in-app notifications.
+
+Notifications are created for important ticket activity such as:
+
+- New tickets
+- Public replies
+- Status changes
+- Ticket assignments
+
+## Scope & Deliberate Trade-offs
+
+The project was timeboxed, so the core ticket workflow and security rules were implemented first.
+
+### Implemented
+
+[x] Client and support-agent authentication
+[x] Organization-based access control
+[x] Ticket creation, list, and detail pages
+[x] Public replies
+[x] Internal support notes
+[x] Status and priority management
+[x] Support-agent assignment
+[x] SLA deadlines and indicators
+[x] Advanced search and filtering
+[x] Pagination
+[x] Notifications
+[x] Responsive React UI
+[x] Laravel feature tests
+[x] GitHub Actions CI
+
+### Deliberately Left Out
+
+- WebSocket notifications (Real-time notification)
+- Events/Queues
+- Audit trails
+- Dashboards
+- Account registration
+- Password reset and email verification
 
 ## Installation
 
@@ -229,3 +290,22 @@ GitHub Actions runs on development branches, pull requests to `main`, and pushes
 ```text
 Laravel Pint → MySQL migrations + seeders → Laravel tests → React production build
 ```
+
+### Known Limitations / Shortcuts
+
+- Notifications are not real-time updates and do not use events or queues.
+- Search uses basic SQL queries.
+- SLA uses calendar hours only.
+- No audit history for ticket changes.
+- Account features are limited to seeded users.
+
+## Next Steps (What i would improve)
+
+- Events and queues
+- Email notifications
+- Real-time updates 
+- Audit trail (Record status, priority, and assignment changes)
+- Do some kind of database indexes as ticket volume grows.
+- A dashboard
+- A file attachments feature
+- Password reset and email verification

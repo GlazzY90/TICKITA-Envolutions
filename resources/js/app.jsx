@@ -2,6 +2,7 @@ import './bootstrap';
 import '../css/app.css';
 
 import React from 'react';
+
 import {
     createRoot,
 } from 'react-dom/client';
@@ -13,25 +14,32 @@ import {
     Routes,
 } from 'react-router-dom';
 
-import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRoute
+    from './components/ProtectedRoute';
+
 import {
     AuthProvider,
 } from './contexts/AuthContext';
 
-import LoginPage from './pages/LoginPage';
-import TicketDetailPage from './pages/TicketDetailPage';
-import TicketsPage from './pages/TicketsPage';
+import LoginPage
+    from './pages/LoginPage';
+
+import TicketDetailPage
+    from './pages/TicketDetailPage';
+
+import TicketsPage
+    from './pages/TicketsPage';
 
 /*
 Logic:
-Bootstraps React and defines the three required application routes.
+Bootstraps React and exposes only the routes required by the application.
 
 Structure:
-Routing stays at the top-level application entry point.
-AuthProvider wraps the application so every route can access user state.
+Authentication state surrounds routing, while ProtectedRoute controls
+authenticated browser navigation.
 
 DSA:
-React Router performs route matching. No application-specific DSA.
+Route matching is delegated to React Router. No custom DSA is used.
 */
 
 function App() {
@@ -40,18 +48,10 @@ function App() {
             <AuthProvider>
                 <Routes>
                     <Route
-                        path="/"
-                        element={
-                            <Navigate
-                                to="/tickets"
-                                replace
-                            />
-                        }
-                    />
-
-                    <Route
                         path="/login"
-                        element={<LoginPage />}
+                        element={
+                            <LoginPage />
+                        }
                     />
 
                     <Route
@@ -61,7 +61,9 @@ function App() {
                     >
                         <Route
                             path="/tickets"
-                            element={<TicketsPage />}
+                            element={
+                                <TicketsPage />
+                            }
                         />
 
                         <Route

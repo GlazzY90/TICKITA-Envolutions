@@ -2,26 +2,32 @@ import http from './http';
 
 /*
 Logic:
-Provides all frontend operations related to support tickets.
+Responsible only for HTTP communication with ticket APIs
 
 Structure:
-The React pages deal with user interaction, while this module owns
-endpoint URLs and HTTP details.
+Components should not need to know Axios response structures.
 
-DSA:
-No custom DSA. Axios serializes query parameters and Laravel/MySQL
-perform filtering.
+For paginated ticket lists, this function exposes:
+- tickets
+- pagination metadata
+- navigation links
 */
 
-export async function fetchTickets(filters = {}) {
+export async function fetchTickets(
+    params = {}
+) {
     const response = await http.get(
         '/api/tickets',
         {
-            params: filters,
+            params,
         }
     );
 
-    return response.data.data;
+    return {
+        tickets: response.data.data,
+        meta: response.data.meta,
+        links: response.data.links,
+    };
 }
 
 export async function createTicket(payload) {

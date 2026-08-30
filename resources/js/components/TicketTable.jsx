@@ -1,27 +1,43 @@
 import {
+    ArrowRight,
+    UserRound,
+} from 'lucide-react';
+
+import {
     Link,
 } from 'react-router-dom';
 
-import SlaBadge from './SlaBadge';
+import {
+    PriorityBadge,
+    SlaBadge,
+    StatusBadge,
+} from './TicketBadges';
 
 /*
 Logic:
-Renders ticket collections for both clients and agents.
+Presents tickets as modern compact support-ticket rows instead of a
+traditional dense HTML table.
 
 Structure:
-The same ticket table is reused because both roles need nearly identical
-list information; agent-only organization/assignment columns are conditional.
+The component remains reusable for both clients and support agents.
+Agent-specific organization information is enabled through a prop.
 
 DSA:
-Rendering n tickets is O(n).
+React maps over n tickets once, therefore rendering complexity is O(n).
 */
 
-function formatValue(value) {
-    return value
-        ?.replaceAll('_', ' ')
-        .replace(/\b\w/g, (letter) =>
-            letter.toUpperCase()
-        );
+function formatDate(value) {
+    if (!value) {
+        return '';
+    }
+
+    return new Intl.DateTimeFormat(
+        undefined,
+        {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+        }
+    ).format(new Date(value));
 }
 
 export default function TicketTable({
@@ -29,66 +45,91 @@ export default function TicketTable({
     showOrganization = false,
 }) {
     if (tickets.length === 0) {
-        return <p>No tickets found.</p>;
+        return (
+            <div className="empty-state">
+                <div className="empty-state-icon">
+                    <UserRound size={24} />
+                </div>
+
+                <h3>No tickets found</h3>
+
+                <p>
+                    Try changing your filters or search.
+                </p>
+            </div>
+        );
     }
 
     return (
-        <div className="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Title</th>
+        <div className="ticket-list">
+            {tickets.map((ticket) => (
+                <Link
+                    className="ticket-row"
+                    to={`/tickets/${ticket.id}`}
+                    key={ticket.id}
+                >
+                    <div className="ticket-row-main">
+                        <div className="ticket-title-line">
+                            <h3>{ticket.title}</h3>
 
-                        {showOrganization && (
-                            <th>Organization</th>
-                        )}
+                            <div className="ticket-row-badges">
+                                <PriorityBadge
+                                    priority={ticket.priority}
+                                />
 
-                        <th>Status</th>
-                        <th>Priority</th>
-                        <th>Assigned</th>
-                        <th>SLA</th>
-                    </tr>
-                </thead>
+                                <StatusBadge
+                                    status={ticket.status}
+                                />
+                            </div>
+                        </div>
 
-                <tbody>
-                    {tickets.map((ticket) => (
-                        <tr key={ticket.id}>
-                            <td>
-                                <Link
-                                    to={`/tickets/${ticket.id}`}
-                                >
-                                    {ticket.title}
-                                </Link>
-                            </td>
+                        <p className="ticket-meta">
+                            <span>
+                                #{String(ticket.id).padStart(4, '0')}
+                            </span>
+
+                            <span>•</span>
 
                             {showOrganization && (
-                                <td>
-                                    {ticket.organization?.name}
-                                </td>
+                                <>
+                                    <span>
+                                        {ticket.organization?.name}
+                                    </span>
+
+                                    <span>•</span>
+                                </>
                             )}
 
-                            <td>
-                                {formatValue(ticket.status)}
-                            </td>
+                            <span>
+                                Created {formatDate(
+                                    ticket.created_at
+                                )}
+                            </span>
+                        </p>
 
-                            <td>
-                                {formatValue(ticket.priority)}
-                            </td>
+                        <p className="ticket-description-preview">
+                            {ticket.description}
+                        </p>
+                    </div>
 
-                            <td>
-                                {ticket.assigned_agent?.name
-                                    ?? 'Unassigned'}
-                            </td>
+                    <div className="ticket-row-side">
+                        <SlaBadge
+                            status={ticket.sla_status}
+                        />
 
-                            <td>
-                                <SlaBadge
-                                    status={ticket.sla_status}
-                                />
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+                        <div className="ticket-assignment">
+                            {ticket.assigned_agent
+                                ? ticket.assigned_agent.name
+                                : 'Unassigned'}
+                        </div>
+
+                        <ArrowRight
+                            className="ticket-arrow"
+                            size={18}
+                        />
+                    </div>
+                </Link>
+            ))}
         </div>
     );
 }

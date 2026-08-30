@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Ticket\StoreTicketMessageRequest;
 use App\Http\Resources\TicketMessageResource;
 use App\Models\Ticket;
+use App\Services\TicketNotificationService;
 use Illuminate\Support\Facades\Gate;
 
 /*
@@ -25,7 +26,8 @@ class TicketMessageController extends Controller
 {
     public function store(
         StoreTicketMessageRequest $request,
-        Ticket $ticket
+        Ticket $ticket,
+        TicketNotificationService $notifications
     ): TicketMessageResource {
         $validated = $request->validated();
 
@@ -45,6 +47,23 @@ class TicketMessageController extends Controller
             'body' => $validated['body'],
             'visibility' => $visibility,
         ]);
+
+        if (
+            $visibility
+            === MessageVisibility::CLIENT_VISIBLE
+        ) {
+            if ($request->user()->isClient()) {
+                $notifications->clientReplied(
+                    $ticket,
+                    $request->user()
+                );
+            } else {
+                $notifications->agentReplied(
+                    $ticket,
+                    $request->user()
+                );
+            }
+        }
 
         $message->load('author:id,name,role');
 

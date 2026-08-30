@@ -1,4 +1,10 @@
 import {
+    ArrowRight,
+    CheckCircle2,
+    MessageSquareText,
+} from 'lucide-react';
+
+import {
     useState,
 } from 'react';
 
@@ -7,35 +13,51 @@ import {
     useNavigate,
 } from 'react-router-dom';
 
-import { useAuth } from '../contexts/AuthContext';
+import {
+    useAuth,
+} from '../contexts/AuthContext';
 
 /*
 Logic:
-Collects email/password and delegates authentication to AuthContext.
+Authenticates users and sends successful sessions into the ticket workspace.
 
 Structure:
-The page handles presentation and user interaction only.
-Sanctum/CSRF details remain in the API layer.
+The visual page remains separate from authentication API implementation.
+AuthContext owns authentication state while this page only handles form UX.
 
 DSA:
-No DSA. Form operations are O(1).
+No meaningful algorithm. Form updates and state transitions are O(1).
 */
 
 export default function LoginPage() {
     const {
         user,
+        loading,
         login,
     } = useAuth();
 
-    const navigate = useNavigate();
+    const navigate =
+        useNavigate();
 
-    const [form, setForm] = useState({
-        email: '',
-        password: '',
-    });
+    const [form, setForm] =
+        useState({
+            email: '',
+            password: '',
+        });
 
-    const [error, setError] = useState('');
-    const [submitting, setSubmitting] = useState(false);
+    const [submitting, setSubmitting] =
+        useState(false);
+
+    const [error, setError] =
+        useState('');
+
+    if (loading) {
+        return (
+            <div className="login-loading">
+                Loading...
+            </div>
+        );
+    }
 
     if (user) {
         return (
@@ -55,11 +77,19 @@ export default function LoginPage() {
         try {
             await login(form);
 
-            navigate('/tickets');
+            navigate(
+                '/tickets',
+                {
+                    replace: true,
+                }
+            );
         } catch (requestError) {
             setError(
-                requestError.response?.data?.message
-                ?? 'Login failed.'
+                requestError.response?.data
+                    ?.errors?.email?.[0]
+                ?? requestError.response
+                    ?.data?.message
+                ?? 'Unable to log in.'
             );
         } finally {
             setSubmitting(false);
@@ -67,58 +97,137 @@ export default function LoginPage() {
     }
 
     return (
-        <main className="auth-page">
-            <form
-                className="card form"
-                onSubmit={handleSubmit}
-            >
-                <h1>Support Ticket Portal</h1>
+        <main className="login-page">
+            <section className="login-brand-panel">
+                <div className="login-brand-content">
+                    <div className="brand large">
+                        <div className="brand-mark">
+                            <MessageSquareText
+                                size={24}
+                            />
+                        </div>
 
-                {error && (
-                    <p className="error">
-                        {error}
-                    </p>
-                )}
+                        <span>TICKITA</span>
+                    </div>
 
-                <label>
-                    Email
-                    <input
-                        type="email"
-                        value={form.email}
-                        onChange={(event) =>
-                            setForm({
-                                ...form,
-                                email: event.target.value,
-                            })
-                        }
-                        required
-                    />
-                </label>
+                    <div className="login-copy">
+                        <p className="eyebrow light">
+                            SUPPORT PORTAL
+                        </p>
 
-                <label>
-                    Password
-                    <input
-                        type="password"
-                        value={form.password}
-                        onChange={(event) =>
-                            setForm({
-                                ...form,
-                                password: event.target.value,
-                            })
-                        }
-                        required
-                    />
-                </label>
+                        <h1>
+                            Support that stays
+                            organized.
+                        </h1>
 
-                <button
-                    type="submit"
-                    disabled={submitting}
+                        <p>
+                            Create, track, and resolve
+                            support requests with clear
+                            ownership, conversations,
+                            and SLA visibility.
+                        </p>
+                    </div>
+
+                    <div className="login-features">
+                        <div>
+                            <CheckCircle2
+                                size={18}
+                            />
+                            Clear ticket lifecycle
+                        </div>
+
+                        <div>
+                            <CheckCircle2
+                                size={18}
+                            />
+                            SLA tracking
+                        </div>
+
+                        <div>
+                            <CheckCircle2
+                                size={18}
+                            />
+                            Secure client conversations
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section className="login-form-panel">
+                <form
+                    className="login-card"
+                    onSubmit={handleSubmit}
                 >
-                    {submitting
-                        ? 'Logging in...'
-                        : 'Login'}
-                </button>
-            </form>
+                    <div className="login-card-heading">
+                        <h2>Welcome back</h2>
+
+                        <p>
+                            Sign in to access your
+                            support workspace.
+                        </p>
+                    </div>
+
+                    {error && (
+                        <div className="alert alert-error">
+                            {error}
+                        </div>
+                    )}
+
+                    <label className="field">
+                        <span>Email address</span>
+
+                        <input
+                            type="email"
+                            autoComplete="email"
+                            placeholder="you@example.com"
+                            value={form.email}
+                            onChange={(event) =>
+                                setForm({
+                                    ...form,
+                                    email:
+                                        event.target.value,
+                                })
+                            }
+                            required
+                        />
+                    </label>
+
+                    <label className="field">
+                        <span>Password</span>
+
+                        <input
+                            type="password"
+                            autoComplete="current-password"
+                            placeholder="Enter your password"
+                            value={form.password}
+                            onChange={(event) =>
+                                setForm({
+                                    ...form,
+                                    password:
+                                        event.target.value,
+                                })
+                            }
+                            required
+                        />
+                    </label>
+
+                    <button
+                        type="submit"
+                        className="btn btn-primary login-button"
+                        disabled={submitting}
+                    >
+                        {submitting
+                            ? 'Signing in...'
+                            : 'Sign In'}
+
+                        {!submitting && (
+                            <ArrowRight
+                                size={17}
+                            />
+                        )}
+                    </button>
+                </form>
+            </section>
         </main>
     );
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SupportOptionsController;
 use App\Http\Controllers\Api\TicketController;
 use App\Http\Controllers\Api\TicketMessageController;
@@ -63,4 +64,28 @@ Route::middleware('auth:sanctum')->group(function () {
         SupportOptionsController::class,
         'index',
     ]);
+
+    Route::get(
+        '/notifications',
+        [
+            NotificationController::class,
+            'index',
+        ]
+    );
+
+    Route::post(
+        '/notifications/read-all',
+        [
+            NotificationController::class,
+            'markAllAsRead',
+        ]
+    );
+
+    Route::post(
+        '/notifications/{notificationId}/read',
+        [
+            NotificationController::class,
+            'markAsRead',
+        ]
+    );
 });

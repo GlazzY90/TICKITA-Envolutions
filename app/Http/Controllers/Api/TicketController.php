@@ -3,108 +3,91 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\MessageVisibility;
-use App\Enums\TicketPriority;
-use App\Enums\TicketStatus;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Ticket\IndexTicketRequest;
 use App\Http\Requests\Ticket\StoreTicketRequest;
 use App\Http\Requests\Ticket\UpdateTicketRequest;
+use App\Filters\TicketFilter;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Ticket\IndexTicketRequest;
 use App\Http\Resources\TicketResource;
 use App\Models\Ticket;
-use App\Services\SlaService;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
+use App\Enums\TicketPriority;
+use App\Enums\TicketStatus;
+use App\Services\SlaService;
+use App\Services\TicketNotificationService;
 
 /*
 Logic:
-Coordinates ticket listing, creation, detail retrieval, and agent updates.
+The controller coordinates the HTTP request.
+
+It:
+1. verifies authorization,
+2. creates the base ticket query,
+3. delegates filtering,
+4. orders and paginates,
+5. returns resources.
 
 Structure:
-Controllers orchestrate requests but delegate:
-- validation -> Form Requests
-- authorization -> TicketPolicy
-- SLA logic -> SlaService
-- database access -> Eloquent
-- serialization -> TicketResource
+Business/filtering rules are deliberately delegated to TicketFilter.
+The controller remains easy to read even if more filters are added later.
 
 DSA:
-No in-memory filtering is used.
-Filtering/search is delegated to MySQL.
-Exact organization/status/priority filters can use indexes.
-"%search%" may scan candidate rows.
-List serialization is O(n).
+The controller itself performs no significant algorithm.
+Database querying and pagination are delegated to MySQL/Eloquent.
 */
 class TicketController extends Controller
 {
     public function index(
-        IndexTicketRequest $request
+        IndexTicketRequest $request,
+        TicketFilter $filter
     ): AnonymousResourceCollection {
-        Gate::authorize('viewAny', Ticket::class);
-
-        $user = $request->user();
+        Gate::authorize(
+            'viewAny',
+            Ticket::class
+        );
 
         $query = Ticket::query()
             ->with([
-                'organization:id,name',
-                'creator:id,name',
-                'assignedAgent:id,name',
+                'organization',
+                'creator',
+                'assignedAgent',
             ]);
 
-        if ($user->isClient()) {
-            $query->where(
-                'organization_id',
-                $user->organization_id
-            );
-        }
+        // dump([
+        //     'validated' => $request->validated(),
+        // ]);
 
-        if (
-            $user->isSupportAgent()
-            && $request->filled('organization_id')
-        ) {
-            $query->where(
-                'organization_id',
-                $request->integer('organization_id')
-            );
-        }
+        $filter->apply(
+            $query,
+            $request->user(),
+            $request->validated()
+        );
 
-        if ($request->filled('status')) {
-            $query->where(
-                'status',
-                $request->string('status')->toString()
-            );
-        }
-
-        if ($request->filled('priority')) {
-            $query->where(
-                'priority',
-                $request->string('priority')->toString()
-            );
-        }
-
-        if ($request->filled('search')) {
-            $search = $request->string('search')->trim()->toString();
-
-            $query->where(function ($query) use ($search) {
-                $query
-                    ->where('title', 'like', "%{$search}%")
-                    ->orWhere(
-                        'description',
-                        'like',
-                        "%{$search}%"
-                    );
-            });
-        }
+        // dump([
+        //     'sql' => $query->toSql(),
+        //     'bindings' => $query->getBindings(),
+        // ]);
 
         $tickets = $query
-            ->latest()
-            ->get();
+            ->latest('created_at')
+            ->paginate(
+                $request->integer(
+                    'per_page',
+                    20
+                )
+            )
+            ->withQueryString();
 
-        return TicketResource::collection($tickets);
+        return TicketResource::collection(
+            $tickets
+        );
     }
 
     public function store(
         StoreTicketRequest $request,
-        SlaService $slaService
+        SlaService $slaService,
+        TicketNotificationService $notifications
     ): TicketResource {
         Gate::authorize('create', Ticket::class);
 
@@ -135,6 +118,11 @@ class TicketController extends Controller
 
             'resolved_at' => null,
         ]);
+
+        $notifications->ticketCreated(
+            $ticket,
+            $request->user()
+        );
 
         $ticket->load([
             'organization:id,name',
@@ -175,11 +163,15 @@ class TicketController extends Controller
 
     public function update(
         UpdateTicketRequest $request,
-        Ticket $ticket
+        Ticket $ticket,
+        TicketNotificationService $notifications
     ): TicketResource {
         Gate::authorize('update', $ticket);
 
         $validated = $request->validated();
+
+        $originalStatus = $ticket->status;
+        $originalAssignedTo = $ticket->assigned_to;
 
         if (array_key_exists('status', $validated)) {
             $status = TicketStatus::from(
@@ -211,6 +203,24 @@ class TicketController extends Controller
         }
 
         $ticket->save();
+
+        if (
+            $ticket->status !== $originalStatus
+        ) {
+            $notifications->statusChanged(
+                $ticket,
+                $request->user()
+            );
+        }
+
+        if (
+            $ticket->assigned_to !== $originalAssignedTo
+            && $ticket->assigned_to !== null
+        ) {
+            $notifications->assigned(
+                $ticket
+            );
+        }
 
         $ticket->load([
             'organization:id,name',

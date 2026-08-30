@@ -3,19 +3,19 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\MessageVisibility;
-use App\Http\Requests\Ticket\StoreTicketRequest;
-use App\Http\Requests\Ticket\UpdateTicketRequest;
+use App\Enums\TicketPriority;
+use App\Enums\TicketStatus;
 use App\Filters\TicketFilter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Ticket\IndexTicketRequest;
+use App\Http\Requests\Ticket\StoreTicketRequest;
+use App\Http\Requests\Ticket\UpdateTicketRequest;
 use App\Http\Resources\TicketResource;
 use App\Models\Ticket;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Support\Facades\Gate;
-use App\Enums\TicketPriority;
-use App\Enums\TicketStatus;
 use App\Services\SlaService;
 use App\Services\TicketNotificationService;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Gate;
 
 /*
 Logic:
